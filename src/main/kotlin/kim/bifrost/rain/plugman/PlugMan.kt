@@ -1,5 +1,6 @@
 package kim.bifrost.rain.plugman
 
+import kim.bifrost.rain.plugman.command.CommandHandler
 import net.mamoe.mirai.console.plugin.jvm.JvmPluginDescription
 import net.mamoe.mirai.console.plugin.jvm.KotlinPlugin
 import net.mamoe.mirai.utils.info
@@ -15,6 +16,6 @@ object PlugMan : KotlinPlugin(
     }
 ) {
     override fun onEnable() {
-
+        CommandHandler.init()
     }
 }
