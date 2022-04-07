@@ -16,8 +16,12 @@ import net.mamoe.mirai.utils.error
 import net.mamoe.mirai.utils.verbose
 import java.io.File
 import java.net.URLClassLoader
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 import kotlin.reflect.full.memberExtensionFunctions
+import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.javaField
 import kotlin.reflect.jvm.javaMethod
 
 /**
@@ -86,7 +90,9 @@ object HotFixHandler {
         MiraiConsoleImplementation.getInstance().jvmPluginLoader.run {
             javaClass.kotlin.memberProperties
                 .find { it.name == "jvmPluginLoadingCtx" }!!
-                .getter.invoke(this)!!
+                .getter
+                .apply { javaMethod!!.isAccessible = true }
+                .invoke(this)!!
         }
             // 调用val的getter最好，因为by lazy不一定初始化了
             // 拿到pluginClassLoaders
@@ -95,15 +101,23 @@ object HotFixHandler {
                 // 找到并删除这个插件的pluginClassLoader
                 first {
                     it.javaClass.name.endsWith("JvmPluginClassLoaderN")
-                            && name == MiraiConsoleImplementation.getInstance().jvmPluginLoader::class
-                        .memberExtensionFunctions.find { func -> func.name == "extractPlugins" }!!
-                        .apply { javaMethod!!.isAccessible = true }
-                        .call(MiraiConsoleImplementation.getInstance().jvmPluginLoader, sequenceOf(it.getProperty<File>("file")))
-                        .cast<List<JvmPlugin>>()
-                        .first().name
+                            && name == MiraiConsoleImplementation.getInstance().jvmPluginLoader.run {
+                                javaClass.kotlin.memberProperties
+                                    .find { p -> p.name == "pluginFileToInstanceMap" }!!
+                                    .apply { javaField?.isAccessible = true }
+                                    .get(this)
+                                    .cast<ConcurrentHashMap<File, JvmPlugin>>()[it.getProperty<File>("file")]!!
+                                    .name
+                    }
                 }.also {
-                    println("pass")
-                    println(remove(it))
+                    MiraiConsoleImplementation.getInstance().jvmPluginLoader.apply {
+                        javaClass.kotlin.memberProperties
+                            .find { p -> p.name == "pluginFileToInstanceMap" }!!
+                            .apply { javaField?.isAccessible = true }
+                            .get(this)
+                            .cast<ConcurrentHashMap<File, JvmPlugin>>()
+                            .remove(it.getProperty<File>("file"))
+                    }
                     // close 之后便可以删除文件
                     (it as? URLClassLoader)?.close()
                     // 删除插件文件

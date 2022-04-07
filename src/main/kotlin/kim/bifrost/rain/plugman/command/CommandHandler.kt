@@ -102,6 +102,7 @@ object CommandHandler : CoroutineScope by PlugMan {
                                 author: ${it.author}
                                 version: ${it.version}
                                 desc: ${it.description.info}
+                                
                             """.trimIndent()
                         })
                     }
@@ -114,6 +115,24 @@ object CommandHandler : CoroutineScope by PlugMan {
                         }.onFailure {
                             group.sendMessage(message.quote() + "测试结果: 不存在")
                         }
+                    }
+                    "help" -> {
+                        group.sendMessage(
+                            """
+                                Plugin Manager v1.0.0 by.寒雨
+                                
+                                Usage: /plugman [args..]
+                                
+                                Sub:
+                                - help              获取帮助信息
+                                - test [class]      测试某类是否存在
+                                - load [file]       热加载jvm插件
+                                - unload [name]     热卸载jvm插件
+                                - enable [name]     启用插件
+                                - disable [name]    禁用插件
+                                - list              列出已加载插件
+                            """.trimIndent()
+                        )
                     }
                     else -> group.sendMessage(message.quote() + "未知命令捏~")
                 }
